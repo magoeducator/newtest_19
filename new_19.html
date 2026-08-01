@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>한화손해보험 모의고사 19형</title>
+<style>
+    /* 기본 리셋 및 모바일 최적화 */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
+    body { background-color: #f4f4f4; color: #333; line-height: 1.6; }
+    #app { max-width: 600px; margin: 0 auto; background: #fff; min-height: 100vh; position: relative; padding-bottom: 80px; }
+    
+    /* 포인트 컬러 (한화 오렌지) */
+    :root { --primary: #f37021; --primary-dark: #d95e16; --success: #28a745; --danger: #dc3545; }
+    
+    /* 스크린 전환 */
+    .screen { display: none; padding: 20px; }
+    .screen.active { display: block; }
+    
+    /* 공통 요소 */
+    h1, h2, h3 { text-align: center; margin-bottom: 20px; color: #111; }
+    .btn { display: block; width: 100%; padding: 15px; border: none; background: var(--primary); color: #fff; font-size: 16px; font-weight: bold; border-radius: 5px; cursor: pointer; text-align: center; margin-top: 10px; }
+    .btn:hover { background: var(--primary-dark); }
+    .btn-outline { background: #fff; color: var(--primary); border: 2px solid var(--primary); }
+    .btn-secondary { background: #6c757d; }
+    
+    /* 첫 화면 타임라인 */
+    .timeline { background: #fff3ed; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #fde1d3; }
+    .timeline-item { margin-bottom: 10px; font-size: 14px; font-weight: bold; color: #555; }
+    .timeline-item span { display: inline-block; background: var(--primary); color: #fff; border-radius: 50%; width: 20px; height: 20px; text-align: center; line-height: 20px; margin-right: 8px; }
+    .type-badge { display: inline-block; background: var(--primary); color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 15px; }
+    .input-group { margin-top: 20px; margin-bottom: 30px; }
+    .input-group input { width: 100%; padding: 15px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; text-align: center; }
+    
+    /* 문제 화면 */
+    .progress-bar { height: 8px; background: #eee; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+    .question-box { font-size: 16px; font-weight: bold; margin-bottom: 20px; }
+    .options { list-style: none; }
+    .option { padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; cursor: pointer; background: #fff; transition: 0.2s; }
+    .option.selected { border-color: var(--primary); background: #fff3ed; font-weight: bold; }
+    .nav-buttons { display: flex; justify-content: space-between; gap: 10px; margin-top: 20px; }
+    .nav-buttons button { width: 48%; }
+    
+    /* 결과 화면 */
+    .result-summary { text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; margin-bottom: 20px; }
+    .result-summary .score { font-size: 24px; font-weight: bold; color: var(--primary); margin: 10px 0; }
+    .copy-area { width: 100%; height: 200px; padding: 15px; border: 2px dashed #ffc107; background: #fffde7; font-size: 14px; resize: none; margin-bottom: 20px; border-radius: 5px; cursor: pointer; line-height: 1.5; }
+    
+    /* 오답노트 */
+    .review-status { margin-bottom: 15px; font-size: 14px; font-weight: bold; }
+    .option.correct { background: #d4edda; border-color: var(--success); color: #155724; }
+    .option.wrong { background: #f8d7da; border-color: var(--danger); color: #721c24; }
+    .explanation { margin-top: 20px; padding: 15px; background: #e9ecef; border-left: 4px solid var(--primary); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div id="app">
+    <!-- 시작 화면 -->
+    <div id="intro-screen" class="screen active">
+        <div style="text-align: center;">
+            <div class="type-badge">19형 모의고사</div>
+            <h2>손해보험·제3보험 자격시험</h2>
+        </div>
+        
+        <div class="timeline">
+            <div class="timeline-item"><span>1</span> 모의고사 풀이 (1문항씩 집중)</div>
+            <div class="timeline-item"><span>2</span> 실시간 자동 채점 및 결과 복사</div>
+            <div class="timeline-item"><span>3</span> 1문항씩 슬라이드 오답노트 확인</div>
+            <div class="timeline-item"><span>4</span> 틀린문제 또는 전체 재시험 진행</div>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="userName" placeholder="훈련생 이름을 입력하세요" autocomplete="off">
+        </div>
+        <button class="btn" onclick="startTest()">시험 시작하기</button>
+    </div>
+
+    <!-- 시험 화면 -->
+    <div id="test-screen" class="screen">
+        <div class="progress-bar"><div class="progress-fill" id="test-progress"></div></div>
+        <div id="question-header" style="font-size: 14px; color: #666; margin-bottom: 10px;"></div>
+        <div class="question-box" id="question-text"></div>
+        <ul class="options" id="options-list"></ul>
+        <div class="nav-buttons">
+            <button class="btn btn-secondary" id="btn-prev" onclick="navigateTest(-1)">이전</button>
+            <button class="btn" id="btn-next" onclick="navigateTest(1)">다음</button>
+        </div>
+    </div>
+
+    <!-- 채점 결과 화면 -->
+    <div id="result-screen" class="screen">
+        <h2>실시간 채점 결과</h2>
+        <div class="result-summary" id="result-summary-box"></div>
+        
+        <p style="font-size: 14px; color: #555; margin-bottom: 5px;">▼ 박스를 터치하면 결과가 자동 복사됩니다.</p>
+        <textarea id="copy-text" class="copy-area" readonly onclick="this.select(); document.execCommand('copy'); alert('결과가 복사되었습니다. 카카오톡에 붙여넣기 하세요.');"></textarea>
+        
+        <button class="btn" onclick="startReview()">완벽학습 오답노트 확인</button>
+    </div>
+
+    <!-- 오답노트 화면 -->
+    <div id="review-screen" class="screen">
+        <div class="progress-bar"><div class="progress-fill" id="review-progress"></div></div>
+        <div class="review-status" id="review-status-text"></div>
+        <div class="question-box" id="review-question-text"></div>
+        <ul class="options" id="review-options-list"></ul>
+        <div class="explanation" id="review-explanation"></div>
+        
+        <button class="btn" id="btn-review-next" onclick="navigateReview()" style="margin-top: 20px;">다음 문제 확인</button>
+    </div>
+
+    <!-- 최종 재시험 화면 -->
+    <div id="final-screen" class="screen">
+        <h2>오답학습 완료</h2>
+        <p style="text-align: center; margin-bottom: 30px;">모든 문제의 해설 확인이 완료되었습니다. 실전 감각을 위해 다시 풀어보시겠습니까?</p>
+        <button class="btn" id="btn-retake-wrong" onclick="retakeTest('wrong')">틀린 문제만 다시 풀기</button>
+        <button class="btn btn-outline" onclick="retakeTest('all')">처음부터 전체 다시 풀기</button>
+    </div>
+</div>
+
+<script>
+/* 
+  문항 데이터 (총 50문항 - 19형 기준)
+  - 1~17번: 손해보험 (각 3점)
+  - 18~33번: 공통 (18번 4점, 나머지 3점)
+  - 34~50번: 제3보험 (각 3점)
+*/
+const allQuestions = [
+    { id: 1, text: "1. 주택화재보험에 가입할 수 없는 물건은?", options: ["연립주택", "주택병용 피아노 교습소", "오피스텔", "아파트"], answer: 2, explanation: "오피스텔은 일반화재보험에 가입할 수 있는 일반물건에 해당합니다." },
+    { id: 2, text: "2. 화재보험에 대한 설명으로 틀린 것은?", options: ["보험기간이 시작된 후라도 보험료를 받기 전에 생긴 손해는 보상하지 않는다", "계약자가 고의로 손해방지의무를 게을리한 때에는 청구권이 소멸된다", "손해가 생긴 경우 지체 없이 통지하여야 한다", "손해방지의무는 계약자와 피보험자 모두의 의무이다"], answer: 1, explanation: "손해방지의무를 위반한 경우 그로 인해 증가된 손해를 보상하지 않습니다." },
+    { id: 3, text: "3. 다음 중 풍수해·지진재해보험의 대상재해가 아닌 것은?", options: ["태풍", "홍수", "지진", "산불"], answer: 3, explanation: "산불은 풍수해·지진재해보험 대상 재해에 해당하지 않습니다." },
+    { id: 4, text: "4. 레저종합보험 중 기간보험과 구간보험이 순서대로 나열된 것은?", options: ["골프보험, 낚시보험", "골프보험, 수렵보험", "스키보험, 낚시보험", "스키보험, 골프보험"], answer: 0, explanation: "레저종합보험의 담보기간은 기간보험(골프, 수렵)과 구간보험(낚시, 스키)으로 나뉩니다." },
+    { id: 5, text: "5. 여행보험의 보장개시에 대한 설명으로 틀린 것은?", options: ["보험증권에 기재된 시각은 보험가입자 소재지의 표준시를 따른다", "계약을 승낙하고 제1회 보험료를 받은 때부터 보장이 개시된다", "별도의 시각이 기재되어 있을 때 그 시각을 기준으로 보장이 개시된다", "시각이 불분명할 때에는 보험료를 수령한 시각을 기준으로 한다"], answer: 0, explanation: "보험증권에 기재된 시각은 보험증권 발행지의 표준시를 따릅니다." },
+    { id: 6, text: "6. 장기손해보험에서 해약환급금을 지급하는 경우에 해당하지 않는 것은?", options: ["계약자가 자유로운 해지 의사표시를 한 경우", "피보험자의 고지의무 위반으로 해지된 경우", "계약자가 통지의무를 위반하여 해지된 경우", "계약자가 제1회 보험료를 납부하지 않은 경우"], answer: 3, explanation: "제1회 보험료를 납부하지 않은 계약은 성립되지 않으며, 납부한 보험료가 없으므로 해약환급금은 발생하지 않습니다." },
+    { id: 7, text: "7. 보험계약 대출제도에 대한 설명으로 틀린 것은?", options: ["해약환급금을 담보로 보험계약 대출제도를 운영한다", "대출기간은 보험기간 만료시점까지이다", "상품에 따라 대출제도가 제한될 수 있다", "만기환급금 범위 내에서 대출이 가능하다"], answer: 3, explanation: "보험계약 대출은 만기환급금이 아닌 해약환급금 범위 내에서 가능합니다." },
+    { id: 8, text: "8. 장기손해보험의 위험보험료에 대한 설명으로 맞는 것은?", options: ["부가보험료는 위험보험료와 저축보험료로 구성된다", "사고발생시 보험금 지급의 재원이 된다", "특별계정에서 운용한다", "보험회사에 필요한 사업비이다"], answer: 1, explanation: "위험보험료는 사고발생 시 지급되는 보험금의 재원입니다. 부가보험료는 신계약비 등입니다." },
+    { id: 9, text: "9. 장기화재보험 통지의무(지체 없이 알리고 승인받아야 할 사항)에 해당하지 않는 것은?", options: ["목적물을 수용하는 건물의 용도를 변경하여 위험이 증가한 경우", "보험의 목적물을 다른 곳으로 옮길 때", "건물을 3일 이상 비울 때", "건물의 구조를 변경, 개축, 증축할 때"], answer: 2, explanation: "건물을 30일 이상 비워두거나 휴업할 때 통지의무가 발생합니다." },
+    { id: 10, text: "10. 연금저축의 가입대상에 대한 세제적격요건으로 알맞은 것은?", options: ["19세 이상", "20세 이상", "직장인", "연령 제한 요건 없음"], answer: 3, explanation: "연금저축은 가입대상에 대한 연령제한 요건이 없습니다." },
+    { id: 11, text: "11. 종합소득이 5,000만원인 거주자가 연금저축보험에 100만원을 납입하였을 때 세액공제액은 얼마인가?(지방소득세 포함)", options: ["12만원", "13.2만원", "24만원", "16.5만원"], answer: 1, explanation: "종합소득 4,500만원 초과자에 해당되어 세액공제비율이 13.2%이므로 100만원의 13.2%인 13.2만원입니다." },
+    { id: 12, text: "12. 자동차보험의 특성에 관한 설명 중 옳은 것으로 짝지어진 것은?", options: ["(가), (나), (마)", "(나), (라), (마)", "(나), (다), (라)", "(가), (나), (라)"], answer: 3, explanation: "(다) 무사고자 할인 및 사고자 할증제도를 운영하고 있습니다. (마) 형사책임 특례를 받더라도 사망, 뺑소니, 12대중과실 등은 형사처벌을 받습니다." },
+    { id: 13, text: "13. '자동차손해배상보장법'의 의무보험에 대한 설명으로 틀린 것은?", options: ["행정업무 처리단계에서 의무보험 가입여부를 확인한다", "보험회사는 특별한 사유가 없는 한 계약을 거절할 수 없다", "피해자가 가해자의 보험회사에 직접 청구할 수 있다", "모두 틀린 설명이다"], answer: 3, explanation: "보기 1, 2, 3은 모두 맞는 설명입니다." },
+    { id: 14, text: "14. 자동차보험에서 의무보험의 가입의무가 면제되는 경우에 해당하는 것은?", options: ["수리비가 차량가액을 초과하여 정비공장에 입고한 경우", "성능검사에서 기능 이상으로 정비공장에 입고한 경우", "도난당하여 경찰관서에 신고한 사실을 서류로 입증한 경우", "새로운 자동차를 구입하고 옛 자동차를 친구에게 빌려준 경우"], answer: 2, explanation: "자동차를 도난당하여 더 이상 운행할 수 없게 된 경우 등에 해당하여 의무보험 가입의무가 면제됩니다." },
+    { id: 15, text: "15. 다음 중 사고내용별 점수가 2점에 해당하는 사고내용을 모두 나열한 것은?", options: ["(가), (나), (라)", "(나), (다), (라)", "(다), (라), (마)", "(나), (마)"], answer: 3, explanation: "사망사고는 4점, 부상 13~14급 및 자기신체사고는 1점입니다. 부상 8~12급(나)과 물적할증기준 초과 사고(마)가 2점입니다." },
+    { id: 16, text: "16. 78세 A씨가 자동차 사고로 사망하였다. 과실 90%, 손해액 1억원일 때 대인배상 보험금은?", options: ["9,000만원", "5,000만원", "2,000만원", "1,000만원"], answer: 2, explanation: "과실상계 후 1,000만원이지만 사망사고의 대인배상I 최저보상한도액인 2,000만원에 미달하므로 2,000만원을 지급합니다." },
+    { id: 17, text: "17. 자동차손해배상보장사업의 보상대상에 해당되지 않는 것은?", options: ["국제연합군대가 보유한 자동차에 의한 사고", "보유자를 알 수 없는 자동차 운행 중 낙하된 물체로 인한 사고", "도난자동차 사고로 보유자가 책임보험으로 보상할 수 없는 경우", "뺑소니 자동차 사고로 보유자와 등록번호가 모두 불명인 경우"], answer: 0, explanation: "국제연합군대 보유 자동차, 미군 보유 자동차 등에 의한 사고는 보장사업 대상에서 제외됩니다." },
+    { id: 18, text: "18. 청약 후 약관 및 계약자 보관용 청약서를 전자적 방법으로 교부하는 경우 준수사항으로 틀린 것은? [4점]", options: ["자료의 교부에 동의하여야 한다", "위조 및 변조가 불가능하도록 보안시스템을 갖추어야 한다", "안내서면으로 교부하여야 한다", "전자적 방법으로 교부하는 경우 자필서명이 필요한 경우 서명을 생략할 수 있다"], answer: 3, explanation: "전자적 방법으로 교부할 때, 자필서명이 필요한 경우 전자서명을 받아야 합니다." },
+    { id: 19, text: "19. 다음은 실손의료보험 계약시 지켜야 할 절차를 열거한 것이다. 순서가 맞게 연결된 것은?", options: ["조회동의서 징구, 중복가입 확인, 비례보상 설명, 청약서 작성", "청약서 작성, 조회동의서 징구, 비례보상 설명, 중복가입 확인", "조회동의서 징구, 청약서 작성, 중복가입 확인, 비례보상 설명", "중복가입 확인, 조회동의서 징구, 비례보상 설명, 청약서 작성"], answer: 0, explanation: "실손의료보험 판매 시 중복가입 확인 및 비례보상 설명을 위한 올바른 절차입니다." },
+    { id: 20, text: "20. 다음 중 금융상품판매대리·중개업자의 금지행위에 해당하지 않는 것은?", options: ["다른 대리점에 소속된 설계사와 위탁계약을 체결한 경우", "소속 설계사와 위탁계약을 체결한 경우", "다른 대리점이나 중개사에 소속된 설계사와 체결한 경우", "다른 대리점과 위탁계약 체결 시 직접판매업자로부터 사전동의를 받지 않은 경우"], answer: 1, explanation: "금소법상 대리·중개업자는 같은 회사 소속 설계사와 위탁계약을 체결하는 것은 예외로 허용됩니다." },
+    { id: 21, text: "21. 제공된 개인정보에 대하여 개인신용정보의 제공동의를 ( ) 할 수 있다. 빈칸에 들어갈 단어는?", options: ["철회", "취소", "수정", "가감"], answer: 0, explanation: "개인신용정보의 제공동의 철회에 대한 설명입니다." },
+    { id: 22, text: "22. 보험설계사 등록 신청에 대한 설명으로 맞는 것은?", options: ["합격 후 금융감독원에 직접 등록신청할 수 있다", "관계업무 종사 경력이 있는 경우 교육 이수 후 등록신청할 수 있다", "대리점 자격시험 합격 후 금융감독원에 직접 신청할 수 있다", "합격하고 보험협회에서 주관하는 교육을 이수하여야 한다"], answer: 1, explanation: "보험설계사 등록은 보험협회에 위탁되어 있으며, 경력자는 교육 이수 후 신청 가능합니다." },
+    { id: 23, text: "23. 보험대리점의 유형별 분류로 알맞은 것은?", options: ["전업대리점, 겸업대리점", "개인대리점, 법인대리점", "생명보험대리점, 손해보험대리점", "전속대리점, 비전속대리점"], answer: 3, explanation: "전속 및 비전속 대리점은 유형별 분류에 해당합니다." },
+    { id: 24, text: "24. 보험대리점 등록취소 사유에 해당하지 않는 것은?", options: ["피한정후견인 선고를 받은 자", "다단계판매업자로 등록한 자", "중고차판매업자로 등록한 자", "파산선고를 받은 자"], answer: 2, explanation: "중고차 판매업자로 등록한 자는 보험대리점 등록취소 사유에 해당하지 않습니다." },
+    { id: 25, text: "25. 보험모집 프로세스에 대한 설명으로 틀린 것은?", options: ["재무상황보다는 고객의 니즈를 우선 반영해야 한다", "계약체결은 영업활동의 최종 단계이자 새로운 관계의 시작이다", "소개확보는 신뢰를 바탕으로 새로운 고객을 확보하는 단계이다", "증권전달은 고객과의 신뢰를 강화하고 니즈를 재확인하는 기회이다"], answer: 0, explanation: "고객의 니즈와 재무상황을 모두 분석하고 반영하여 최적의 보장설계를 제안해야 합니다." },
+    { id: 26, text: "26. 투기위험에 해당하지 않는 것은?", options: ["주식투자", "신규 사업 진출", "교통사고", "도박"], answer: 2, explanation: "교통사고는 손실만 발생하는 순수위험에 해당합니다." },
+    { id: 27, text: "27. 보험기간에 따른 보험의 분류에 대한 설명으로 틀린 것은?", options: ["단기보험은 1년 이하인 소멸성 보험이다", "장기보험은 통상 3년 이상이다", "단기보험은 위험보장과 저축기능을 가진다", "장기보험은 만기시 환급금을 지급한다"], answer: 2, explanation: "위험보장과 저축기능을 겸한 보험은 단기가 아닌 장기보험입니다." },
+    { id: 28, text: "28. 보험사기의 처벌에 관한 설명 중 틀린 것은?", options: ["사기행위란 보험자를 기망하여 보험금을 청구하는 행위를 말한다", "자동차손해배상보장법에 따라 가중 처벌될 수 있다", "이득액이 5억원 이상 50억원 미만인 때 3년 이상 유기징역에 처해진다", "이득액이 50억원 이상인 경우 무기 또는 5년 이상 징역에 처해진다"], answer: 1, explanation: "보험사기방지특별법에 따른 가중 처벌 외에 자배법에 따른 가중처벌 조항은 없습니다." },
+    { id: 29, text: "29. 정비업체의 보험사기 방지를 위한 내용 중 틀린 것은?", options: ["정비의뢰자의 동의 없이 임의로 차량을 정비해서는 안 된다", "정비하기 전에 사전견적서를 교부하여야 한다", "수리가 끝난 후에는 정비내역서를 교부하여야 한다", "사전견적서 교부의무 위반시 300만원 이하 과태료에 처해진다"], answer: 3, explanation: "사전견적서 교부의무 위반 시 정비업체는 100만원 이하의 과태료에 처해집니다." },
+    { id: 30, text: "30. 보험계약의 고지의무 대상에 해당하지 않는 것은?", options: ["피보험자의 직업", "피보험자의 직무", "피보험자의 연령", "피보험자의 보험가입이력"], answer: 3, explanation: "보험가입이력은 고지의무 대상에 해당하지 않습니다." },
+    { id: 31, text: "31. 다음 중 보험가액을 한도로 보상하는 것은?", options: ["일부보험", "전부보험", "초과보험", "공동보험"], answer: 2, explanation: "초과보험은 보험가액을 한도로 실손 보상합니다." },
+    { id: 32, text: "32. 보험계약의 효력에 대한 설명으로 알맞은 것은?", options: ["타인의 사망보험 계약은 서면동의를 받지 않아도 유효하다", "의사능력이 있는 심신박약자가 체결한 계약은 유효하다", "심신상실자의 사망을 보험사고로 한 계약은 유효하다", "15세 미만자의 사망을 보험사고로 한 계약은 유효하다"], answer: 1, explanation: "심신박약자가 스스로 계약하거나 의사능력이 있는 경우는 예외적으로 유효합니다. 나머지는 모두 무효입니다." },
+    { id: 33, text: "33. 제3자에 대한 보험자 대위에 대한 설명으로 틀린 것은?", options: ["청구권 대위라고도 한다", "손해가 제3자의 행위로 인하여 발생하여야 한다", "보험금의 전부를 지급한 경우에만 권리를 행사할 수 있다", "제3자의 행위는 불법행위와 채무불이행을 포함한다"], answer: 2, explanation: "지급한 보험금의 범위 내에서 일부만 지급한 경우에도 대위권을 행사할 수 있습니다." },
+    { id: 34, text: "34. 제3보험에 대한 설명으로 틀린 것은?", options: ["생명보험과 손해보험의 성격을 공통적으로 가지고 있다", "실손보상 성격과 정액보상 성격을 동시에 가지고 있다", "생명보험회사와 손해보험회사가 모두 영위할 수 있다", "실손보상 성격을 가지고 있어 손해보험 성격에 가깝다"], answer: 3, explanation: "제3보험은 생명보험과 손해보험 중 어느 한 분야에 속한다고 할 수 없는 독립된 제3의 분야입니다." },
+    { id: 35, text: "35. 제3보험에 대한 설명으로 옳은 것은?", options: ["질병보험, 상해보험, 연금보험으로 구분한다", "정액보상만 가능하다", "심신상실자의 사망을 담보하는 계약을 보장한다", "실손보상 상품에 중복가입시 비례보상한다"], answer: 3, explanation: "실손보상 담보는 중복가입 시 비례보상 원칙이 적용됩니다." },
+    { id: 36, text: "36. 제3보험의 보상방식에 대한 설명으로 틀린 것은?", options: ["질병사망보험금은 실손보상방식으로 지급한다", "의료실비는 실손보상방식으로 지급한다", "후유장해보험금은 정액보상방식으로 지급한다", "입원일당 급여는 정액보상방식으로 지급한다"], answer: 0, explanation: "질병사망보험금 등 사망보험금은 사전에 약정된 정액보상방식으로 지급합니다." },
+    { id: 37, text: "37. 다음에서 제3보험에 대한 설명으로 틀린 것은?", options: ["보장성보험이다", "질병으로 인한 사망보장은 특약으로만 부가할 수 있다", "80세 이상은 가입할 수 없다", "손해보험회사는 주계약이 상해보험인 경우 저축성으로 개발이 가능하다"], answer: 2, explanation: "원칙적으로 제3보험의 가입연령 등 제한은 약관에 따르며 80세 이상 가입 불가라는 일률적 제한은 없습니다." },
+    { id: 38, text: "38. 손해보험회사의 질병사망 영위에 대한 설명으로 틀린 것은?", options: ["특약 형식으로 운영하여야 한다", "가입금액은 개인당 2억원까지 설계할 수 있다", "만기는 80세 이하로 한다", "생명보험회사와 동일한 조건으로 운영할 수 있다"], answer: 3, explanation: "손해보험회사의 질병사망은 만기 80세, 한도 2억원, 특약 형태 등 제한된 조건하에서만 운영할 수 있습니다." },
+    { id: 39, text: "39. 상해보험에서 보험수익자의 지정 및 변경에 대한 설명으로 맞는 것은?", options: ["피보험자만이 보험수익자를 지정할 수 있다", "계약체결 후에는 보험수익자를 변경할 수 없다", "계약자와 피보험자는 보험수익자를 지정·변경할 수 있다", "계약자는 보험수익자를 지정할 수 있다"], answer: 3, explanation: "보험계약자는 계약체결 이후에도 보험수익자를 지정 또는 변경할 수 있습니다." },
+    { id: 40, text: "40. 상해보험의 보상내용에 대한 설명으로 옳지 않은 것은?", options: ["피보험자가 심신상실 상태에서 자살한 경우 보상하지 않는다", "상법상 중과실로 인한 사망사고의 경우에도 보상하도록 규정하고 있다", "계약자가 고의로 피보험자를 해친 경우는 보상하지 않는다", "지진으로 인하여 다치거나 사망한 경우에도 보상한다"], answer: 0, explanation: "피보험자가 심신상실 등으로 자유로운 의사결정을 할 수 없는 상태에서 자신을 해친 경우에는 보험금을 지급합니다." },
+    { id: 41, text: "41. 상해보험에서 사망보험금 지급에 대해 설명이 틀린 것은?", options: ["상해의 직접결과로써 사망한 경우 지급한다", "보험수익자에게 지급한다", "실종선고를 받은 경우 1년이 경과하는 때 사망한 것으로 본다", "관공서에서 조사하여 통보하는 경우 기재된 사망연월일을 기준으로 한다"], answer: 2, explanation: "실종선고를 받은 경우 법원에서 인정한 실종기간이 끝나는 때에 사망한 것으로 봅니다." },
+    { id: 42, text: "42. 상해보험의 수술급여금에 대한 설명으로 틀린 것은?", options: ["직접적인 치료 목적으로 수술을 받은 경우 지급한다", "수술급여금은 매 사고마다 지급한다", "동일한 상해로 동시에 2가지 이상 수술을 받은 경우 모두 지급한다", "동시 2회 이상의 수술을 받은 경우에는 1회에 한하여 보상한다"], answer: 2, explanation: "동일한 상해를 직접원인으로 동시에 2가지 이상의 수술을 받은 경우에는 1회에 한하여 수술급여금을 지급합니다." },
+    { id: 43, text: "43. 단체상해보험의 2종 단체(법정단체)에 해당하는 단체로 알맞은 것은?", options: ["관공서, 사업장 등 5인 이상의 근로자를 고용하고 있는 단체", "비영리단체 등 동업자단체로 5인 이상의 구성원이 있는 단체", "계약의 일괄처리가 가능한 5인 이상의 단체", "회사, 조합 등 5인 이상의 근로자를 고용하고 있는 단체"], answer: 1, explanation: "2종 단체는 비영리법인 등 동업자 단체로 5인 이상의 구성원이 있는 단체입니다. 1종은 급여단체(관공서 등)입니다." },
+    { id: 44, text: "44. 질병보험의 대기기간에 대한 설명으로 옳지 않은 것은?", options: ["제자리암, 기타피부암 등은 대기기간 없이 시작일부터 보상한다", "대기기간 중 암 진단 확정시 특별약관을 무효로 한다", "15세 미만자는 암보험에서 대기기간을 설정하지 않고 있다", "특별약관 무효시 납입한 특별약관 보험료를 환급하지 않는다"], answer: 3, explanation: "특별약관이 무효가 된 경우에는 이미 납입한 해당 특별약관의 보험료를 환급합니다." },
+    { id: 45, text: "45. 보험계약 청약일 이전에 진단 또는 치료사실이 있는 경우, 같은 질병으로 추가 진단 등이 발생하여 보상받을 수 있는 시점은 청약일로부터 얼마나 경과한 때부터인가?", options: ["3년", "5년", "10년", "어떤 사유로든 보상받을 수 없다"], answer: 1, explanation: "청약일로부터 5년이 지난 후 진단된 경우 약관에 따라 보상받을 수 있습니다." },
+    { id: 46, text: "46. 치아보험에 대한 설명으로 틀린 것은?", options: ["충치 등 질병 또는 상해로 보존치료 등을 받은 경우 지급받는다", "질병 치료에 대하여 면책기간이나 감액기간을 운영하고 있다", "면책기간은 이미 치아질환을 보유한 사람의 가입을 방지하기 위함이다", "갱신할 때마다 보험료가 조정되는데 갱신은 전체 기간 중 3회를 초과할 수 없다"], answer: 3, explanation: "치아보험(갱신형)은 연령 증가 등에 따라 보험료가 조정되며, 보험료 갱신 횟수에 제한은 없습니다." },
+    { id: 47, text: "47. 활동불능 또는 타인의 간병을 필요로 하는 상태를 보장하는 보험에 해당하지 않는 것은?", options: ["장기간병보험", "장기요양보험", "개호보험", "장애보험"], answer: 3, explanation: "장기간병보험 등에 대한 설명이며, 장애보험은 간병보험에 해당하지 않습니다." },
+    { id: 48, text: "48. 국민건강보험법에 따라 요양급여를 적용받지 못하는 경우 질병급여 의료비의 보상한도는?", options: ["본인이 실제 부담한 금액의 30%", "본인이 실제 부담한 금액의 40%", "본인이 실제 부담한 금액의 50%", "본인이 실제 부담한 금액의 60%"], answer: 1, explanation: "의료급여를 적용받지 못하는 경우 급여 의료비 중 본인이 실제로 부담한 금액의 40%를 한도로 보상합니다." },
+    { id: 49, text: "49. 5세대 실손의료보험에 대한 설명으로 틀린 것은?", options: ["중증과 비중증을 분리하여 보상한도와 자기부담금이 달라진다", "비급여 보험금에 따라 특별약관2의 보험료가 할인 할증된다", "입신, 출산 관련 급여 의료비가 신규로 보장된다", "치료 중 보험기간이 만료되었을 때 계속 중인 입원기간에 대하여 입원급여금이 보상되지 않는다"], answer: 3, explanation: "보장개시일 이후 입원하여 치료를 받던 중 보험기간이 만료되었을 때에도 퇴원하기 전까지의 계속 중인 입원기간에 대하여는 입원급여금을 계속 지급합니다." },
+    { id: 50, text: "50. 실손의료보험의 상품구조에 대한 설명으로 틀린 것은?", options: ["5세대 상해입원시 보장한도는 통원과 합산하여 연간 5천만원이다", "유병력자 실손의료보험 통원시 보장한도는 회당 20만원이다", "노후 실손의료보험 통원시 외래와 함께 처방조제를 포함한다", "노후 실손의료보험의 질병입원시 보장한도는 통원과 합산하여 연간 5천만원이다"], answer: 3, explanation: "노후 실손의료보험의 질병입원 및 통원 의료비 보장한도는 합산하여 연간 1억원 한도입니다." }
+];
+
+// 배점 로직: 18번만 4점, 나머지는 3점
+allQuestions.forEach(q => {
+    q.points = (q.id === 18) ? 4 : 3;
+    q.section = (q.id <= 17) ? 'nonlife' : (q.id <= 33 ? 'common' : 'third');
+});
+
+// 상태 변수
+let userName = '';
+let currentQuestionIndex = 0;
+let userAnswers = new Array(50).fill(null);
+let questionList = Array.from({length: 50}, (_, i) => i); 
+let testMode = 'all'; 
+
+// DOM Elements
+const screens = document.querySelectorAll('.screen');
+
+function showScreen(id) {
+    screens.forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0, 0);
+}
+
+// 1. 시험 시작
+function startTest() {
+    const nameInput = document.getElementById('userName').value.trim();
+    if(!nameInput) {
+        alert("이름을 입력해주세요. (실명 입력 필수)");
+        return;
+    }
+    userName = nameInput;
+    questionList = Array.from({length: 50}, (_, i) => i);
+    userAnswers = new Array(50).fill(null);
+    currentQuestionIndex = 0;
+    testMode = 'all';
+    
+    renderTestQuestion();
+    showScreen('test-screen');
+}
+
+// 2. 시험 렌더링
+function renderTestQuestion() {
+    const qIndex = questionList[currentQuestionIndex];
+    const q = allQuestions[qIndex];
+    
+    // Progress
+    const progress = ((currentQuestionIndex + 1) / questionList.length) * 100;
+    document.getElementById('test-progress').style.width = progress + '%';
+    
+    let headerText = `[모의고사] ${currentQuestionIndex + 1} / ${questionList.length}`;
+    if(q.section === 'nonlife') headerText += ' - 손해보험 (1~17번)';
+    else if(q.section === 'common') headerText += ' - 공통문항 (18~33번)';
+    else headerText += ' - 제3보험 (34~50번)';
+    
+    document.getElementById('question-header').innerText = headerText;
+    document.getElementById('question-text').innerText = q.text;
+    
+    const optionsHtml = q.options.map((opt, i) => {
+        const isSelected = userAnswers[qIndex] === i ? 'selected' : '';
+        return `<li class="option ${isSelected}" onclick="selectAnswer(${qIndex}, ${i})">${i + 1}. ${opt}</li>`;
+    }).join('');
+    document.getElementById('options-list').innerHTML = optionsHtml;
+    
+    document.getElementById('btn-prev').style.display = currentQuestionIndex === 0 ? 'none' : 'block';
+    
+    const btnNext = document.getElementById('btn-next');
+    if (currentQuestionIndex === questionList.length - 1) {
+        btnNext.innerText = "채점하기";
+        btnNext.onclick = submitTest;
+    } else {
+        btnNext.innerText = "다음";
+        btnNext.onclick = () => navigateTest(1);
+    }
+}
+
+function selectAnswer(qIndex, optIndex) {
+    userAnswers[qIndex] = optIndex;
+    renderTestQuestion();
+}
+
+function navigateTest(step) {
+    currentQuestionIndex += step;
+    renderTestQuestion();
+}
+
+// 3. 채점 및 결과
+function submitTest() {
+    const unans = questionList.filter(q => userAnswers[q] === null);
+    if(unans.length > 0) {
+        if(!confirm(`아직 풀지 않은 문제가 ${unans.length}개 있습니다. 그대로 제출하시겠습니까?`)) return;
+    }
+
+    let scoreNL = 0; 
+    let scoreTH = 0; 
+    let wrongNL = [];
+    let wrongTH = [];
+
+    allQuestions.forEach(q => {
+        const isCorrect = userAnswers[q.id - 1] === q.answer;
+        
+        if(q.id <= 33) {
+            if(isCorrect) scoreNL += q.points;
+            else if(userAnswers[q.id - 1] !== null) wrongNL.push(q.id); 
+            else wrongNL.push(q.id); 
+        }
+        
+        if(q.id >= 18) {
+            if(isCorrect) scoreTH += q.points;
+            else if(userAnswers[q.id - 1] !== null) wrongTH.push(q.id);
+            else wrongTH.push(q.id);
+        }
+    });
+
+    const nlPass = scoreNL >= 60 ? '합격' : '과락';
+    const thPass = scoreTH >= 60 ? '합격' : '과락';
+    const finalResult = (scoreNL >= 60 && scoreTH >= 60) ? '★최종합격★' : '불합격(과락)';
+
+    document.getElementById('result-summary-box').innerHTML = `
+        <div style="font-size:18px;">${userName} 님의 결과</div>
+        <div class="score">${finalResult}</div>
+        <p>손해보험: ${scoreNL}점 (${nlPass})</p>
+        <p>제3보험: ${scoreTH}점 (${thPass})</p>
+    `;
+
+    const copyFormat = 
+`[한화손보 모의고사 19형 결과]
+훈련생: ${userName}
+결과: ${finalResult}
+▶ 손해보험: ${scoreNL}점 (${nlPass})
+▶ 제3보험: ${scoreTH}점 (${thPass})
+
+❌ 틀린 문항
+- 손보 틀린번호: ${wrongNL.length ? wrongNL.join(', ') : '없음'}
+- 제3보 틀린번호: ${wrongTH.length ? wrongTH.join(', ') : '없음'}`;
+
+    document.getElementById('copy-text').value = copyFormat;
+    showScreen('result-screen');
+}
+
+// 4. 완벽학습 오답노트
+function startReview() {
+    currentQuestionIndex = 0;
+    renderReviewQuestion();
+    showScreen('review-screen');
+}
+
+function renderReviewQuestion() {
+    const qIndex = questionList[currentQuestionIndex];
+    const q = allQuestions[qIndex];
+    const userAns = userAnswers[qIndex];
+    const isCorrect = userAns === q.answer;
+
+    const progress = ((currentQuestionIndex + 1) / questionList.length) * 100;
+    document.getElementById('review-progress').style.width = progress + '%';
+
+    document.getElementById('review-status-text').innerHTML = `
+        문제 ${q.id}번: 
+        <span style="color: ${isCorrect ? 'var(--success)' : 'var(--danger)'};">
+            ${isCorrect ? '정답 ⭕' : '오답 ❌'}
+        </span>
+    `;
+    
+    document.getElementById('review-question-text').innerText = q.text;
+
+    const optionsHtml = q.options.map((opt, i) => {
+        let cls = '';
+        if(i === q.answer) cls = 'correct'; 
+        else if(i === userAns) cls = 'wrong'; 
+        
+        let icon = '';
+        if(i === q.answer) icon = '⭕';
+        else if(i === userAns) icon = '❌';
+
+        return `<li class="option ${cls}" style="cursor:default;">${i + 1}. ${opt} <span style="float:right">${icon}</span></li>`;
+    }).join('');
+    document.getElementById('review-options-list').innerHTML = optionsHtml;
+
+    document.getElementById('review-explanation').innerHTML = `<b>[공식 해설]</b><br>${q.explanation}`;
+
+    const btnNext = document.getElementById('btn-review-next');
+    if (currentQuestionIndex === questionList.length - 1) {
+        btnNext.innerText = "오답학습 완료";
+        btnNext.onclick = () => showScreen('final-screen');
+    } else {
+        btnNext.innerText = "다음 문제 확인";
+        btnNext.onclick = navigateReview;
+    }
+}
+
+function navigateReview() {
+    currentQuestionIndex++;
+    renderReviewQuestion();
+}
+
+// 5. 재시험 로직
+function retakeTest(mode) {
+    if(mode === 'all') {
+        questionList = Array.from({length: 50}, (_, i) => i);
+    } else {
+        questionList = allQuestions.filter(q => userAnswers[q.id - 1] !== q.answer).map(q => q.id - 1);
+        if(questionList.length === 0) {
+            alert("틀린 문제가 없습니다! 완벽합니다.");
+            return;
+        }
+    }
+    
+    questionList.forEach(idx => userAnswers[idx] = null);
+    currentQuestionIndex = 0;
+    testMode = mode;
+    
+    renderTestQuestion();
+    showScreen('test-screen');
+}
+</script>
+</body>
+</html>
